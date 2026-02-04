@@ -1,0 +1,6 @@
+numpy>=1.24,<2
+matplotlib>=3.5
+pandas>=2.0,<3
+mypy>=1.5
+typing-extensions>=4.0.0
+pandas-stubs>=2.0.0
