@@ -4,12 +4,27 @@ import pandas as pd
 import os
 from typing import Final
 import numpy.typing as npt
+import random
+import matplotlib as plt
+import matplotlib.pyplot as plt
+
 
 PATH_DATA_SET: Final = "datasets/dataset_train.csv"
 ITERATION_RANGE : Final = 1000
 LEARNING_RATE: Final = 0.1
 LIMIT_STEP_RATE: Final = 0.01
 PATH_OUTPUT_FILE: Final = "weight.csv"
+
+def matrix_learning_graf(step, history: dict) -> None:
+    fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(8, 6))
+    for ax, (house, data) in zip(axes.flat, history.items()):
+        y = np.array(data["loss cost"], dtype=float)
+        #y = data["loss cost"]
+        x = arr = np.arange(len(y))
+        ax.scatter(x, y)
+        ax.set_title(f"{house} – p")
+    plt.tight_layout()
+    plt.show()
 
 def write_in_file(theta: npt.NDArray[np.float64], house: str, ind: int, path: str, materie: list[str]):
     if not os.path.isfile(path):
@@ -78,33 +93,47 @@ def calculate_step(d: npt.NDArray[np.float64], rate: float ) -> npt.NDArray[np.f
     return rate * d
 
 def cheack_value_step(s: npt.NDArray[np.float64]) -> np.bool_:
+    #return np.linalg.norm(s) <= LIMIT_STEP_RATE
     return np.all(s <= LIMIT_STEP_RATE)
 
-def trace_history(history : dict, loss_cost: np.float64):
+def trace_history_loss_cost(history : dict, loss_cost: np.float64):
     history["loss cost"].append(loss_cost)
     #mi sa che mi serve solo il loss cost e salvare l'ultimo theta
 
+def trace_history_theta(history : dict, theta: npt.NDArray[np.float64]):
+    history["theta"].append(theta)
+
+def trace_history_p(history : dict, p: npt.NDArray[np.float64]):
+    history["p"].append(p)
+
+def loss_logistic(p: npt.NDArray[np.float64], y: npt.NDArray[np.float64]) -> float:
+    m = len(y)
+    epsilon = 1e-15
+    loss = -(1/m) * np.sum(y * np.log(p + epsilon) + (1 - y) * np.log(1 - p + epsilon))
+    return loss
+
+
 def gradient_descend(data: pd.DataFrame, y: npt.NDArray[np.float64]) -> tuple[npt.NDArray[np.float64], dict]:
     theta: npt.NDArray[np.float64]= np.zeros(data.shape[1])
-    history = {"theta": [], "loss cost": [], "p": []}
+    history = {"theta": [], "loss cost": [], "p": [], "step": []}
     for _ in range(ITERATION_RANGE):
-        #z : npt.NDArray[np.float64] = theta @ data
         z = data.to_numpy() @ theta
         p = sigm(z)
-        #TODO aggiungere il loss cost corretto
         loss_cost = np.sum(p - y)
-        derivate = derivate_loss_fun(p, y, data) # manca la derivata quella non moltiplicate per le materie
+        loss_cost = loss_logistic(p, y)
+        derivate = derivate_loss_fun(p, y, data) 
         step = calculate_step(derivate, LEARNING_RATE)
-        trace_history(history, loss_cost)
+        trace_history_loss_cost(history, loss_cost)
         if (cheack_value_step(step)):
             break
         theta = theta - step
+    trace_history_theta(history, theta)
+    trace_history_p(history, p)
     return theta, history
 
 def cleaning(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series , list[str]]:
     new_data = data.select_dtypes(include=[np.number]).copy()
     materie = data.columns[6:].tolist()
-    print(materie)
     materie.append("Bias")
     house = pd.Series()
     #TODO verificare da che collona prendere i dati
@@ -118,7 +147,6 @@ def cleaning(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series , list[str]]:
         house = data['Hogwarts House'].copy()
     if new_data.empty or house.empty:
         raise ValueError("Dataset is empty")
-    print(house)
     return new_data, house, materie
 
 
@@ -133,21 +161,25 @@ def std_all_input_value(data: pd.DataFrame) -> pd.DataFrame:
 
 def for_loop_gradiend_descent(houses: pd.Series , data_std: pd.DataFrame, materie: list[str]) -> None:
     unique_house = houses.unique().tolist()
-    data_history: dict[str, dict[str, float]] = {}
+    all_probabilities = pd.DataFrame(index=data_std.index)
+    history: dict[str, dict[str, float]] = {}
 
-    #for indice, nome in enumerate(nomi):
     for index, house in enumerate(unique_house): 
         weight: npt.NDArray[np.float64] = np.where(houses == house, 1, 0)
-        theta, history = gradient_descend(data_std, weight)
-        data_history[house] = history
-        print(len(materie) == len(theta))
+        theta, historyTmp = gradient_descend(data_std, weight)
+        final_p_array = historyTmp['p'][-1]
+        all_probabilities[house] = final_p_array
+        
+        history[house] = historyTmp
         write_in_file(np.array(theta), house, index, PATH_OUTPUT_FILE, materie)
-    for index, house in enumerate(unique_house):
-        weight: npt.NDArray[np.float64] = np.where(houses == house, 1, 0)
-        confronti = np.where( data_history[house]['p'] > #tutti gli altri p dei altri house, 1, 0))
-                             )
-        esatti, sbagliati = count_confronti(weight, confronti)
 
+    predicted_houses = all_probabilities.idxmax(axis=1)
+    correct = (predicted_houses == houses).sum()
+    total = len(houses)
+    print(f"Accuracy: {correct / total:.2%} ({correct}/{total})")
+    errors = houses[predicted_houses != houses]
+    #print(errors)
+    matrix_learning_graf(1000, history);
 
 def main() -> None:
     data_raw: pd.DataFrame = charge_file(PATH_DATA_SET)
