@@ -7,7 +7,7 @@ PYTHON_VENV  = $(VENV)/bin/python3
 PIP_VENV     = $(VENV)/bin/pip
 MY_VENV		 = $(VENV)/bin/mypy
 
-TRAIN_PROG   = train.py
+TRAIN_PROG   = logreg_train.py
 PREDIC_PROG  = predict.py 
 MAIN_SCRIPT  = train.py
 REQS         = requirements.txt
