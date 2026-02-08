@@ -4,9 +4,9 @@ import pandas as pd
 import os
 from typing import Final
 import numpy.typing as npt
-import random
 import matplotlib as plt
 import matplotlib.pyplot as plt
+import sys
 
 
 PATH_DATA_SET: Final = "datasets/dataset_train.csv"
@@ -22,7 +22,9 @@ def matrix_learning_graf(step, history: dict) -> None:
         #y = data["loss cost"]
         x = arr = np.arange(len(y))
         ax.scatter(x, y)
-        ax.set_title(f"{house} – p")
+        ax.set_title(f"{house} – J (loss cost)")
+        ax.set_ylabel("Cost")
+        ax.set_xlabel("Epoch")
     plt.tight_layout()
     plt.show()
 
@@ -159,7 +161,7 @@ def std_all_input_value(data: pd.DataFrame) -> pd.DataFrame:
     new_data["Bias"] = np.full(data.shape[0], 1)
     return new_data
 
-def for_loop_gradiend_descent(houses: pd.Series , data_std: pd.DataFrame, materie: list[str]) -> None:
+def for_loop_gradiend_descent(houses: pd.Series , data_std: pd.DataFrame) -> None:
     unique_house = houses.unique().tolist()
     all_probabilities = pd.DataFrame(index=data_std.index)
     history: dict[str, dict[str, float]] = {}
@@ -171,7 +173,7 @@ def for_loop_gradiend_descent(houses: pd.Series , data_std: pd.DataFrame, materi
         all_probabilities[house] = final_p_array
         
         history[house] = historyTmp
-        write_in_file(np.array(theta), house, index, PATH_OUTPUT_FILE, materie)
+        write_in_file(np.array(theta), house, index, PATH_OUTPUT_FILE, data_std.columns[:].tolist())
 
     predicted_houses = all_probabilities.idxmax(axis=1)
     correct = (predicted_houses == houses).sum()
@@ -181,12 +183,22 @@ def for_loop_gradiend_descent(houses: pd.Series , data_std: pd.DataFrame, materi
     #print(errors)
     matrix_learning_graf(1000, history);
 
-def main() -> None:
-    data_raw: pd.DataFrame = charge_file(PATH_DATA_SET)
-    data_cleaning, houses, materie = cleaning(data_raw)
-    data_std = std_all_input_value(data_cleaning)
-    for_loop_gradiend_descent(houses, data_std, materie)
-    return None
+def main() -> int:
+    try:
+        data_raw: pd.DataFrame = charge_file(PATH_DATA_SET)
+        data_cleaning, houses, materie = cleaning(data_raw)
+        data_std = std_all_input_value(data_cleaning)
+        for_loop_gradiend_descent(houses, data_std)
+    except (FileNotFoundError, PermissionError, ValueError) as e:
+        print(f"Error: {e}")
+        return 1
+    except pd.errors.EmptyDataError:
+        print("Error: The file is empty")
+        return 1
+    except pd.errors.ParserError:
+        print("Error: The file is corrupt")
+        return 1
+    return 0
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
