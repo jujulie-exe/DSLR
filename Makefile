@@ -9,12 +9,17 @@ MY_VENV		 = $(VENV)/bin/mypy
 
 TRAIN_PROG   = logreg_train.py
 PREDIC_PROG  = logreg_predict.py
+DESCRIBE_PROG = describe.py
+HISTOGRAM_PROG = histogram.py
+PAIR_PLOT_PROG = pair_plot.py
+SCATTER_PLOT_PROG = scatter_plot.py
+
 MAIN_SCRIPT  = train.py
 REQS         = requirements.txt
 WEIGHTS_FILE = weight.csv
 TEST_FILE    = datasets/dataset_test.csv
 
-.PHONY: all install run run_train run_predict debug clean fclean lint lint-strict re
+.PHONY: all install run run_train run_predict run_describe run_histogram run_pair_plot run_scatter_plot debug clean fclean lint lint-strict re
 
 # =========================
 # Target di default
@@ -44,6 +49,18 @@ install: $(VENV)/.installed
 # =========================
 # Esecuzione script
 # =========================
+run_describe: install
+	$(PYTHON_VENV) $(DESCRIBE_PROG)
+
+run_histogram: install
+	$(PYTHON_VENV) $(HISTOGRAM_PROG)
+	
+run_pair_plot: install
+	$(PYTHON_VENV) $(PAIR_PLOT_PROG)
+
+run_scatter_plot: install
+	$(PYTHON_VENV) $(SCATTER_PLOT_PROG)
+
 run_train: install
 	$(PYTHON_VENV) $(TRAIN_PROG)
 
