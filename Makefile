@@ -8,10 +8,11 @@ PIP_VENV     = $(VENV)/bin/pip
 MY_VENV		 = $(VENV)/bin/mypy
 
 TRAIN_PROG   = logreg_train.py
-PREDIC_PROG  = predict.py 
+PREDIC_PROG  = logreg_predict.py
 MAIN_SCRIPT  = train.py
 REQS         = requirements.txt
-INFO_TXT	 = info.txt
+WEIGHTS_FILE = weight.csv
+TEST_FILE    = datasets/dataset_test.csv
 
 .PHONY: all install run run_train run_predict debug clean fclean lint lint-strict re
 
@@ -19,7 +20,6 @@ INFO_TXT	 = info.txt
 # Target di default
 # =========================
 all: install
-	@echo "0 0" > $(INFO_TXT)
 
 	
 
@@ -48,7 +48,7 @@ run_train: install
 	$(PYTHON_VENV) $(TRAIN_PROG)
 
 run_predict: install
-	$(PYTHON_VENV) $(PREDIC_PROG)
+	$(PYTHON_VENV) $(PREDIC_PROG) $(TEST_FILE) $(WEIGHTS_FILE)
 
 debug: install
 	$(PYTHON_VENV) -m pdb $(MAIN_SCRIPT)
