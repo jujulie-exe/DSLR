@@ -25,6 +25,9 @@ TEST_FILE    = datasets/dataset_test.csv
 # Target di default
 # =========================
 all: install
+	@echo "" > $(WEIGHTS_FILE)
+
+
 
 	
 
@@ -74,7 +77,7 @@ debug: install
 # Pulizia
 # =========================
 clean:
-	rm -rf __pycache__ .mypy_cache .pytest_cache
+	rm -rf __pycache__ .mypy_cache .pytest_cache $(WEIGHTS_FILE)
 
 fclean: clean
 	rm -rf $(VENV)

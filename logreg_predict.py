@@ -5,7 +5,7 @@ import numpy.typing as npt
 import sys
 import os
 from typing import Final
-FILE_OUT: Final = "House.csv"
+FILE_OUT: Final = "houses.csv"
 """
 House,Arithmancy,Astronomy,Herbology,Defense Against the Dark Arts,Divination,Muggle Studies,Ancient Runes,History of Magic,Transfiguration,Potions,Care of Magical Creatures,Charms,Flying,Bias
 Ravenclaw,0.015123986565551065,-0.3469728246909958,0.25581485023916695,0.34849404806419415,0.212222514129826,0.571320775701334,0.45218520883689023,0.07106546147643868,0.07921034318608203,0.05188670718067233,0.015566872801775234,0.521500947672387,-0.00453987340142728,-0.5117367147648437
@@ -27,8 +27,6 @@ def write_int_test_file(predicted_houses: pd.Series, path: str, df_row: pd.DataF
                   header= True)
 
 def calculate_probabilities(theta: pd.DataFrame , data: pd.DataFrame) -> npt.NDArray[np.float64]:
-    print(data.shape)
-    print(theta.shape)
     z = data.to_numpy() @ theta.to_numpy().T
     p = lrt.sigm(z)
     return p
@@ -41,9 +39,6 @@ def loop_for_all_house_and_predict_probabilities(theta: pd.DataFrame , data: pd.
 
     house = theta.iloc[0:4, :]
     houses = house.loc[:, "House"].unique().tolist()
-    print(data)
-    print(theta.drop(columns=['House']))
-
     data = data.dropna(axis=1, how='any')
     for house in houses:
         p = calculate_probabilities(theta.loc[theta.loc[:, 'House'] == house, :].drop(columns=['House']), data)

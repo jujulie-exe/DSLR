@@ -181,8 +181,12 @@ def std_all_input_value(data: pd.DataFrame, mean = None, sigma = None) -> tuple[
     new_data["Bias"] = np.full(data.shape[0], 1)
     return new_data, mean_and_sigma
 
-def save_std_and_mean(data: pd.DataFrame) -> None:
-    data.to_csv("weight.csv", 
+def save_std_and_mean(data: pd.DataFrame, path: str) -> None:
+    if not os.path.isfile(path):
+        raise FileNotFoundError(f"File not found: {path}")
+    if not os.access(path, os.R_OK):
+        raise PermissionError(f"No read permission for {path}")
+    data.to_csv(path, 
                   mode='a', 
                   index=True, 
                   header= False)
@@ -217,7 +221,7 @@ def main() -> int:
         data_cleaning, houses, materie = cleaning(data_raw)
         data_std, mean_and_sigma = std_all_input_value(data_cleaning)
         for_loop_gradiend_descent(houses, data_std)
-        save_std_and_mean(mean_and_sigma)
+        save_std_and_mean(mean_and_sigma, PATH_OUTPUT_FILE)
     except (FileNotFoundError, PermissionError, ValueError) as e:
         print(f"Error: {e}")
         return 1
