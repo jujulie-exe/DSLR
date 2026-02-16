@@ -46,12 +46,14 @@ def write_in_file(theta: npt.NDArray[np.float64], house: str, ind: int, path: st
                   index=False, 
                   header= not ind)
 
-def stadarrizzazione(x: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
-    mean = x.sum() / len(x)
+def stadarrizzazione(x: npt.NDArray[np.float64], mean = None, sigma = None ) -> tuple[npt.NDArray[np.float64], float, float]:
+    if sigma is None:
+        sigma = stdDeV(x)
+    if mean is None:
+        mean = x.sum() / len(x)
     new_array : npt.NDArray[np.float64]
-    sigma = stdDeV(x)
     new_array = (x - mean) / sigma
-    return new_array
+    return new_array, sigma, mean
 
 def stdDeV(x: npt.NDArray[np.float64]):
     n = len(x)
@@ -145,21 +147,47 @@ def cleaning(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series , list[str]]:
         new_data = new_data.drop(columns=['Birthday'])
     if 'Best Hand' in new_data.columns:
         new_data = new_data.drop(columns=['Best Hand'])
+    if 'Bias' in new_data.columns:
+        new_data = new_data.drop(columns=['Bias'])
     if 'Hogwarts House' in data.columns:
         house = data['Hogwarts House'].copy()
+    if 'Hogwarts House' in new_data.columns:
+        new_data = new_data.drop(columns=['Hogwarts House'])
     if new_data.empty or house.empty:
         raise ValueError("Dataset is empty")
     return new_data, house, materie
 
 
-def std_all_input_value(data: pd.DataFrame) -> pd.DataFrame:
+def std_all_input_value(data: pd.DataFrame, mean = None, sigma = None) -> tuple[pd.DataFrame, pd.DataFrame]:
     new_data = pd.DataFrame()
+    means_history = []
+    sigmas_history = []
+    mean_and_sigma = pd.DataFrame()
     for i in range(0, data.shape[1]):
-        data.iloc[:, i] = data.iloc[:, i].fillna(data.iloc[:, i].mean())
-        std = stadarrizzazione(data.iloc[:, i].to_numpy())
-        new_data[data.columns[i]] = std;
+        
+        if mean is None or sigma is None:
+            data.iloc[:, i] = data.iloc[:, i].fillna(data.iloc[:, i].mean())
+            std, s, m = stadarrizzazione(data.iloc[:, i].to_numpy(), mean, sigma)
+        else:
+            data.iloc[:, i] = data.iloc[:, i].fillna(mean[i])
+            std, s, m = stadarrizzazione(data.iloc[:, i].to_numpy(), mean[i], sigma[i])
+        means_history.append(m)
+        sigmas_history.append(s)
+        new_data[data.columns[i]] = std
+    mean_and_sigma["mean"] = means_history
+    mean_and_sigma["sigma"] = sigmas_history
+    mean_and_sigma = mean_and_sigma.T
+    
     new_data["Bias"] = np.full(data.shape[0], 1)
-    return new_data
+    return new_data, mean_and_sigma
+
+def save_std_and_mean(data: pd.DataFrame) -> None:
+    data.to_csv("weight.csv", 
+                  mode='a', 
+                  index=True, 
+                  header= False)
+
+    
 
 def for_loop_gradiend_descent(houses: pd.Series , data_std: pd.DataFrame) -> None:
     unique_house = houses.unique().tolist()
@@ -187,8 +215,9 @@ def main() -> int:
     try:
         data_raw: pd.DataFrame = charge_file(PATH_DATA_SET)
         data_cleaning, houses, materie = cleaning(data_raw)
-        data_std = std_all_input_value(data_cleaning)
+        data_std, mean_and_sigma = std_all_input_value(data_cleaning)
         for_loop_gradiend_descent(houses, data_std)
+        save_std_and_mean(mean_and_sigma)
     except (FileNotFoundError, PermissionError, ValueError) as e:
         print(f"Error: {e}")
         return 1

@@ -26,7 +26,7 @@ def main() -> int:
         # print("house: ", houses)
         # print("materie: ", materie)
         # print("data_cleaning: ", data_cleaning)
-        data_std = std_all_input_value(data_cleaning)
+        data_std, _ = std_all_input_value(data_cleaning)
         histogram(data_std, houses)
         plt.show()
     except (FileNotFoundError, PermissionError, ValueError) as e:
