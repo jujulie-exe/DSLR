@@ -12,8 +12,10 @@ import sys
 PATH_DATA_SET: Final = "datasets/dataset_train.csv"
 ITERATION_RANGE : Final = 1000
 LEARNING_RATE: Final = 0.1
-LIMIT_STEP_RATE: Final = 0.01
+LIMIT_STEP_RATE: Final = 1e-6
 PATH_OUTPUT_FILE: Final = "weight.csv"
+OPTIONAL_DROP_COLUMNS: Final = ["Arithmancy", "Care of Magical Creatures", "Defense Against the Dark Arts"]
+NO_OPTIONAL_DROP_COLUMNS: Final = ["Index", "Birthday", "Best Hand", "Hogwarts House", "Bias"]
 
 def matrix_learning_graf(step, history: dict) -> None:
     fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(8, 6))
@@ -82,10 +84,10 @@ def sigm(z: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
     p: npt.NDArray[np.float64] = 1 / (1 + np.exp(-z))
     return p
 
-def derivate_loss_fun(p: npt.NDArray[np.float64], y: npt.NDArray[np.float64], data :pd.DataFrame) -> npt.NDArray[np.float64]:
-    m = data.shape[0]
+def derivate_loss_fun(p: npt.NDArray[np.float64], y: npt.NDArray[np.float64], X :npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+    m = X.shape[0]
     error = (p - y)
-    d = ((1/m) * (error @ data.to_numpy()))
+    d = ((1/m) * (error @ X))
     return d
 
 #def derivate_loss_for_dependet_theta(p: npt.NDArray[np.float64], y: npt.NDArray[np.float64], data: pd.DataFrame) -> npt.NDArray[np.float64]:
@@ -118,43 +120,43 @@ def loss_logistic(p: npt.NDArray[np.float64], y: npt.NDArray[np.float64]) -> flo
 
 
 def gradient_descend(data: pd.DataFrame, y: npt.NDArray[np.float64]) -> tuple[npt.NDArray[np.float64], dict]:
+    X = data.to_numpy()
     theta: npt.NDArray[np.float64]= np.zeros(data.shape[1])
+    prev_loss = np.inf
     history = {"theta": [], "loss cost": [], "p": [], "step": []}
     for _ in range(ITERATION_RANGE):
-        z = data.to_numpy() @ theta
+        z = X @ theta
         p = sigm(z)
         loss_cost = np.sum(p - y)
         loss_cost = loss_logistic(p, y)
-        derivate = derivate_loss_fun(p, y, data) 
+        derivate = derivate_loss_fun(p, y, X) 
         step = calculate_step(derivate, LEARNING_RATE)
         trace_history_loss_cost(history, loss_cost)
-        if (cheack_value_step(step)):
+        if (abs(prev_loss - loss_cost) < LIMIT_STEP_RATE):
             break
         theta = theta - step
+        prev_loss = loss_cost
     trace_history_theta(history, theta)
     trace_history_p(history, p)
     return theta, history
 
-def cleaning(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series , list[str]]:
-    new_data = data.select_dtypes(include=[np.number]).copy()
-    materie = data.columns[6:].tolist()
-    materie.append("Bias")
+def cleaning(data: pd.DataFrame, drop_columns: list[str] | None = None) -> tuple[pd.DataFrame, pd.Series , list[str]]:
+    new_data = data.select_dtypes(include=[np.number]).copy()    
     house = pd.Series()
-    #TODO verificare da che collona prendere i dati
-    if 'Index' in new_data.columns:
-        new_data = new_data.drop(columns=['Index'])
-    if 'Birthday' in new_data.columns:
-        new_data = new_data.drop(columns=['Birthday'])
-    if 'Best Hand' in new_data.columns:
-        new_data = new_data.drop(columns=['Best Hand'])
-    if 'Bias' in new_data.columns:
-        new_data = new_data.drop(columns=['Bias'])
+    for col in NO_OPTIONAL_DROP_COLUMNS:
+        if col in new_data.columns:
+            new_data = new_data.drop(columns=[col]) 
+    # in DATA
     if 'Hogwarts House' in data.columns:
         house = data['Hogwarts House'].copy()
-    if 'Hogwarts House' in new_data.columns:
-        new_data = new_data.drop(columns=['Hogwarts House'])
+    if drop_columns is not None:
+        for col in drop_columns:
+            if col in new_data.columns:
+                new_data = new_data.drop(columns=[col])
     if new_data.empty or house.empty:
         raise ValueError("Dataset is empty")
+    materie = new_data.columns[:].tolist()
+    materie.append("Bias")
     return new_data, house, materie
 
 
@@ -218,7 +220,7 @@ def for_loop_gradiend_descent(houses: pd.Series , data_std: pd.DataFrame) -> Non
 def main() -> int:
     try:
         data_raw: pd.DataFrame = charge_file(PATH_DATA_SET)
-        data_cleaning, houses, materie = cleaning(data_raw)
+        data_cleaning, houses, materie = cleaning(data_raw, OPTIONAL_DROP_COLUMNS)
         data_std, mean_and_sigma = std_all_input_value(data_cleaning)
         for_loop_gradiend_descent(houses, data_std)
         save_std_and_mean(mean_and_sigma, PATH_OUTPUT_FILE)
