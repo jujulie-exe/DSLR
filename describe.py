@@ -73,7 +73,7 @@ def describe(data_raw: pd.DataFrame, percentiles: list = [0.25, 0.5, 0.75]) -> N
             print(f"Mean:", end=" ")
             diff(data_raw[column].mean(), mean(data_raw[column]))
             print(f"Std:", end=" ")
-            diff(data_raw[column].std(), stdDeV(data_raw[column]))
+            diff(data_raw[column].std(), std(data_raw[column]))
             print(f"Min:", end=" ")
             diff(data_raw[column].min(), min(data_raw[column]))
             for p in percentiles:
